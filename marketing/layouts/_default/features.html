@@ -1,0 +1,22 @@
+{{ define "main" }}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1>{{ .Title }}</h1>
+            {{ .Content }}
+        </div>
+    </div>
+    <div class="row g-4 mt-3">
+        {{ range .Site.Data.features }}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <h5 class="card-title">{{ .title }}</h5>
+                    <p class="card-text text-muted">{{ .description }}</p>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+</div>
+{{ end }}

@@ -1,0 +1,72 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-bobsbinder}
+      MYSQL_USER: ${MYSQL_USER:-bobsbinder}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-bobsbinder}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8080:8080"
+    environment:
+      API_PORT: "8080"
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: ${MYSQL_USER:-bobsbinder}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-bobsbinder}
+      DB_NAME: ${MYSQL_DATABASE:-bobsbinder}
+    volumes:
+      - .:/app
+      - go_mod_cache:/go/pkg/mod
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  marketing:
+    build:
+      context: ./marketing
+      dockerfile: Dockerfile
+    ports:
+      - "1313:1313"
+    volumes:
+      - ./marketing:/src
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - frontend
+      - marketing
+
+volumes:
+  mysql_data:
+  go_mod_cache:

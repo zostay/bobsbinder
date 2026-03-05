@@ -1,0 +1,23 @@
+- title: "Guided Checklist"
+  description: "A step-by-step checklist walks you through every document you need to prepare."
+  icon: "clipboard-check"
+
+- title: "Secure Storage"
+  description: "Your documents are encrypted and stored securely. Only you control access."
+  icon: "lock"
+
+- title: "Family Profiles"
+  description: "Organize documents for yourself, your spouse, and your dependents — all in one place."
+  icon: "users"
+
+- title: "Secure Sharing"
+  description: "Generate a secure link with an unlock code so your trusted person can access your binder."
+  icon: "share"
+
+- title: "Document Categories"
+  description: "From wills to passwords, we've organized 15 categories to cover everything."
+  icon: "folder"
+
+- title: "Progress Tracking"
+  description: "See at a glance what you've completed and what still needs attention."
+  icon: "chart-bar"
