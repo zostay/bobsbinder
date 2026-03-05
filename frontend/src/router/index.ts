@@ -65,8 +65,8 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/survivor-letter',
-    name: 'survivor-letter',
+    path: '/cover-letter',
+    name: 'cover-letter',
     component: SurvivorLetterView,
     meta: { requiresAuth: true },
   },

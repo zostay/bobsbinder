@@ -41,10 +41,20 @@ type computedItem struct {
 // SyncLetter ensures the survivor letter exists for the given user, syncs all
 // sections and auto-generated items from source data, and returns the full letter.
 func SyncLetter(db *sql.DB, logger *zap.Logger, userID int64) (*models.FullSurvivorLetter, error) {
-	// 1. Ensure letter row exists
+	// 1. Ensure letter row exists (with personalized defaults from user name)
+	var userName string
+	if err := db.QueryRow("SELECT name FROM users WHERE id = ?", userID).Scan(&userName); err != nil {
+		userName = ""
+	}
+
+	defaultGreeting := "Dear loved ones,"
+	defaultIntro := "If you are reading this, I am no longer able to manage my own affairs. I have prepared this letter to help you find and manage the important things in my life. Please use this as a guide — it covers the key documents, accounts, contacts, and other details you may need."
+	defaultClosing := "I hope this letter makes a difficult time a little easier. Please know that I love you and I am grateful for everything you have meant to me."
+	defaultSignature := userName
+
 	_, err := db.Exec(
-		"INSERT IGNORE INTO survivor_letters (user_id, greeting, intro, closing, signature) VALUES (?, '', '', '', '')",
-		userID,
+		"INSERT IGNORE INTO survivor_letters (user_id, greeting, intro, closing, signature) VALUES (?, ?, ?, ?, ?)",
+		userID, defaultGreeting, defaultIntro, defaultClosing, defaultSignature,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("ensure letter: %w", err)

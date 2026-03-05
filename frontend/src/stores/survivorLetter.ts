@@ -23,8 +23,13 @@ export const useSurvivorLetterStore = defineStore('survivorLetter', () => {
     closing: string
     signature: string
   }) {
+    if (letter.value) {
+      letter.value.greeting = updates.greeting
+      letter.value.intro = updates.intro
+      letter.value.closing = updates.closing
+      letter.value.signature = updates.signature
+    }
     await api.put('/survivor-letter', updates)
-    await fetchLetter()
   }
 
   async function updateSection(

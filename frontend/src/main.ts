@@ -9,6 +9,7 @@ import '@mdi/font/css/materialdesignicons.css'
 
 import App from './App.vue'
 import router from './router'
+import './styles/print.css'
 
 const vuetify = createVuetify({
   components,

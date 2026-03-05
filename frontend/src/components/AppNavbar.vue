@@ -9,7 +9,7 @@
     <v-spacer />
 
     <template v-if="auth.isAuthenticated">
-      <v-btn variant="text" to="/survivor-letter">Survivor Letter</v-btn>
+      <v-btn variant="text" to="/cover-letter">Cover Letter</v-btn>
       <v-btn variant="text" to="/documents">Documents</v-btn>
       <v-menu>
         <template v-slot:activator="{ props }">

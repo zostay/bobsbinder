@@ -1,0 +1,21 @@
+@media print {
+  .v-app-bar,
+  .v-navigation-drawer,
+  .editor-column,
+  .preview-panel > .v-card-title,
+  .preview-panel > hr {
+    display: none !important;
+  }
+
+  .preview-panel {
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .preview-content {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+}
