@@ -9,7 +9,20 @@
     <v-spacer />
 
     <template v-if="auth.isAuthenticated">
+      <v-btn variant="text" to="/survivor-letter">Survivor Letter</v-btn>
       <v-btn variant="text" to="/documents">Documents</v-btn>
+      <v-menu>
+        <template v-slot:activator="{ props }">
+          <v-btn variant="text" v-bind="props" append-icon="mdi-chevron-down">Data</v-btn>
+        </template>
+        <v-list>
+          <v-list-item to="/contacts" title="Contacts" />
+          <v-list-item to="/locations" title="Locations" />
+          <v-list-item to="/digital-access" title="Digital Access" />
+          <v-list-item to="/insurance-policies" title="Insurance Policies" />
+          <v-list-item to="/service-accounts" title="Service Accounts" />
+        </v-list>
+      </v-menu>
       <v-btn variant="text" @click="auth.logout()">Logout</v-btn>
     </template>
     <template v-else>
