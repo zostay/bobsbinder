@@ -126,6 +126,18 @@ func (h *DocumentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-resolve party_id to user's "self" party when omitted
+	if req.PartyID == 0 {
+		err := h.DB.QueryRow(
+			"SELECT id FROM parties WHERE user_id = ? AND relationship = 'self' LIMIT 1",
+			userID,
+		).Scan(&req.PartyID)
+		if err != nil {
+			http.Error(w, `{"error":"no self party found"}`, http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Verify party belongs to user
 	var count int
 	err := h.DB.QueryRow("SELECT COUNT(*) FROM parties WHERE id = ? AND user_id = ?", req.PartyID, userID).Scan(&count)

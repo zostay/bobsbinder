@@ -33,42 +33,24 @@
       </v-card-actions>
     </v-card>
 
-    <v-dialog v-model="showForm" max-width="600">
-      <v-card>
-        <v-card-title>{{ editing ? 'Edit Entry' : 'Add Entry' }}</v-card-title>
-        <v-card-text>
-          <v-text-field v-model="form.name" label="Name" required />
-          <v-select
-            v-model="form.type"
-            label="Type"
-            :items="[
-              { title: 'Computer', value: 'computer' },
-              { title: 'Phone', value: 'phone' },
-              { title: 'Password Manager', value: 'password_manager' },
-            ]"
-            required
-          />
-          <v-text-field v-model="form.username" label="Username" />
-          <v-textarea v-model="form.instructions" label="Access Instructions" rows="3" />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn @click="closeForm">Cancel</v-btn>
-          <v-btn color="primary" @click="save">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <DigitalInfoFormDialog
+      v-model="showForm"
+      :edit-data="editingItem"
+      initial-type="computer"
+      @saved="onSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useDigitalAccessStore } from '../stores/digitalAccess'
+import DigitalInfoFormDialog from '../components/DigitalInfoFormDialog.vue'
 import type { DigitalAccess } from '../types'
 
 const store = useDigitalAccessStore()
 const showForm = ref(false)
-const editing = ref<number | null>(null)
+const editingItem = ref<DigitalAccess | null>(null)
 
 const typeLabels: Record<string, string> = {
   computer: 'Computer',
@@ -76,42 +58,14 @@ const typeLabels: Record<string, string> = {
   password_manager: 'Password Manager',
 }
 
-const form = reactive({
-  name: '',
-  type: 'computer' as 'computer' | 'phone' | 'password_manager',
-  username: '',
-  instructions: '',
-})
-
-function resetForm() {
-  form.name = ''
-  form.type = 'computer'
-  form.username = ''
-  form.instructions = ''
-  editing.value = null
-}
-
 function startEdit(item: DigitalAccess) {
-  form.name = item.name
-  form.type = item.type
-  form.username = item.username || ''
-  form.instructions = item.instructions || ''
-  editing.value = item.id
+  editingItem.value = item
   showForm.value = true
 }
 
-function closeForm() {
-  showForm.value = false
-  resetForm()
-}
-
-async function save() {
-  if (editing.value) {
-    await store.updateItem(editing.value, { ...form })
-  } else {
-    await store.createItem({ ...form })
-  }
-  closeForm()
+function onSaved() {
+  editingItem.value = null
+  store.fetchItems()
 }
 
 onMounted(() => {

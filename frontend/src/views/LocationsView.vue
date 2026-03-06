@@ -36,73 +36,32 @@
       </v-card-actions>
     </v-card>
 
-    <v-dialog v-model="showForm" max-width="600">
-      <v-card>
-        <v-card-title>{{ editing ? 'Edit Location' : 'Add Location' }}</v-card-title>
-        <v-card-text>
-          <v-text-field v-model="form.name" label="Name" required />
-          <v-select v-model="form.type" label="Type" :items="['physical', 'digital']" required />
-          <v-textarea v-model="form.description" label="Description" rows="2" />
-          <v-text-field v-model="form.address" label="Address" />
-          <v-textarea v-model="form.access_instructions" label="Access Instructions" rows="2" />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn @click="closeForm">Cancel</v-btn>
-          <v-btn color="primary" @click="save">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <LocationFormDialog
+      v-model="showForm"
+      :edit-data="editingLocation"
+      @saved="onSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useLocationStore } from '../stores/locations'
+import LocationFormDialog from '../components/LocationFormDialog.vue'
 import type { Location } from '../types'
 
 const store = useLocationStore()
 const showForm = ref(false)
-const editing = ref<number | null>(null)
-const form = reactive({
-  name: '',
-  type: 'physical' as 'physical' | 'digital',
-  description: '',
-  address: '',
-  access_instructions: '',
-})
-
-function resetForm() {
-  form.name = ''
-  form.type = 'physical'
-  form.description = ''
-  form.address = ''
-  form.access_instructions = ''
-  editing.value = null
-}
+const editingLocation = ref<Location | null>(null)
 
 function startEdit(location: Location) {
-  form.name = location.name
-  form.type = location.type
-  form.description = location.description || ''
-  form.address = location.address || ''
-  form.access_instructions = location.access_instructions || ''
-  editing.value = location.id
+  editingLocation.value = location
   showForm.value = true
 }
 
-function closeForm() {
-  showForm.value = false
-  resetForm()
-}
-
-async function save() {
-  if (editing.value) {
-    await store.updateLocation(editing.value, { ...form })
-  } else {
-    await store.createLocation({ ...form })
-  }
-  closeForm()
+function onSaved() {
+  editingLocation.value = null
+  store.fetchLocations()
 }
 
 onMounted(() => {

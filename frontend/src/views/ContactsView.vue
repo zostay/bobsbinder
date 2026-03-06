@@ -19,7 +19,10 @@
     </v-card>
 
     <v-card v-for="contact in store.contacts" :key="contact.id" class="mb-2">
-      <v-card-title>{{ contact.name }}</v-card-title>
+      <v-card-title :class="{ 'font-weight-bold': contact.is_primary }">
+        {{ contact.name }}
+        <v-chip v-if="contact.is_primary" size="small" color="primary" class="ml-2">Primary</v-chip>
+      </v-card-title>
       <v-card-subtitle v-if="contact.role">{{ contact.role }}</v-card-subtitle>
       <v-card-text>
         <div v-if="contact.relationship">Relationship: {{ contact.relationship }}</div>
@@ -34,81 +37,32 @@
       </v-card-actions>
     </v-card>
 
-    <v-dialog v-model="showForm" max-width="600">
-      <v-card>
-        <v-card-title>{{ editing ? 'Edit Contact' : 'Add Contact' }}</v-card-title>
-        <v-card-text>
-          <v-text-field v-model="form.name" label="Name" required />
-          <v-text-field v-model="form.role" label="Role (e.g. Attorney, Pastor)" />
-          <v-text-field v-model="form.relationship" label="Relationship" />
-          <v-text-field v-model="form.phone" label="Phone" />
-          <v-text-field v-model="form.email" label="Email" />
-          <v-textarea v-model="form.address" label="Address" rows="2" />
-          <v-textarea v-model="form.notes" label="Notes" rows="2" />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn @click="closeForm">Cancel</v-btn>
-          <v-btn color="primary" @click="save">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ContactFormDialog
+      v-model="showForm"
+      :edit-data="editingContact"
+      @saved="onSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useContactStore } from '../stores/contacts'
+import ContactFormDialog from '../components/ContactFormDialog.vue'
 import type { Contact } from '../types'
 
 const store = useContactStore()
 const showForm = ref(false)
-const editing = ref<number | null>(null)
-const form = reactive({
-  name: '',
-  role: '',
-  relationship: '',
-  phone: '',
-  email: '',
-  address: '',
-  notes: '',
-})
-
-function resetForm() {
-  form.name = ''
-  form.role = ''
-  form.relationship = ''
-  form.phone = ''
-  form.email = ''
-  form.address = ''
-  form.notes = ''
-  editing.value = null
-}
+const editingContact = ref<Contact | null>(null)
 
 function startEdit(contact: Contact) {
-  form.name = contact.name
-  form.role = contact.role || ''
-  form.relationship = contact.relationship || ''
-  form.phone = contact.phone || ''
-  form.email = contact.email || ''
-  form.address = contact.address || ''
-  form.notes = contact.notes || ''
-  editing.value = contact.id
+  editingContact.value = contact
   showForm.value = true
 }
 
-function closeForm() {
-  showForm.value = false
-  resetForm()
-}
-
-async function save() {
-  if (editing.value) {
-    await store.updateContact(editing.value, { ...form })
-  } else {
-    await store.createContact({ ...form })
-  }
-  closeForm()
+function onSaved() {
+  editingContact.value = null
+  store.fetchContacts()
 }
 
 onMounted(() => {

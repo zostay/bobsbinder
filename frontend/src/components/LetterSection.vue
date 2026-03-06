@@ -45,6 +45,7 @@
         @edit="(id, content) => $emit('editItem', id, content)"
         @delete="(id) => $emit('deleteItem', id)"
         @unsuppress="(id) => $emit('unsuppressItem', id)"
+        @edit-structured="(sourceType, sourceId) => $emit('editStructured', sourceType, sourceId)"
       />
 
       <v-divider v-if="suppressedItems.length > 0" class="my-2" />
@@ -57,8 +58,16 @@
         @edit="(id, content) => $emit('editItem', id, content)"
         @delete="(id) => $emit('deleteItem', id)"
         @unsuppress="(id) => $emit('unsuppressItem', id)"
+        @edit-structured="(sourceType, sourceId) => $emit('editStructured', sourceType, sourceId)"
       />
 
+      <v-btn
+        v-if="addButtonLabel"
+        size="small" variant="tonal" color="primary" prepend-icon="mdi-plus"
+        class="mt-2 mr-2" @click="$emit('addStructured', section.section_key)"
+      >
+        {{ addButtonLabel }}
+      </v-btn>
       <v-btn
         size="small" variant="text" color="primary" prepend-icon="mdi-plus"
         class="mt-2" @click="showAddItem = true"
@@ -103,7 +112,18 @@ const emit = defineEmits<{
   editItem: [itemId: number, content: string]
   deleteItem: [itemId: number]
   unsuppressItem: [itemId: number]
+  addStructured: [sectionKey: string]
+  editStructured: [sourceType: string, sourceId: number]
 }>()
+
+const addButtonLabels: Record<string, string> = {
+  contacts: 'Add Contact',
+  documents: 'Add Document',
+  locations: 'Add Location',
+  digital_info: 'Add Digital Info',
+}
+
+const addButtonLabel = computed(() => addButtonLabels[props.section.section_key] || null)
 
 const editingTitle = ref(false)
 const titleText = ref('')

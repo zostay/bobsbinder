@@ -49,6 +49,7 @@ export interface Contact {
   email?: string
   address?: string
   notes?: string
+  is_primary?: boolean
   created_at: string
   updated_at: string
 }

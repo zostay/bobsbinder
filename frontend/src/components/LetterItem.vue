@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { SurvivorLetterItem } from '../types'
 
 const props = defineProps<{
@@ -67,12 +67,19 @@ const emit = defineEmits<{
   edit: [id: number, content: string]
   delete: [id: number]
   unsuppress: [id: number]
+  editStructured: [sourceType: string, sourceId: number]
 }>()
+
+const isStructured = computed(() => !!props.item.source_type && !!props.item.source_id)
 
 const editingContent = ref(false)
 const editText = ref('')
 
 function startEdit() {
+  if (isStructured.value) {
+    emit('editStructured', props.item.source_type!, props.item.source_id!)
+    return
+  }
   editText.value = props.item.content
   editingContent.value = true
 }

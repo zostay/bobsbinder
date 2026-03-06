@@ -62,6 +62,16 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 		Logger: logger,
 	}
 
+	partyHandler := &handlers.PartyHandler{
+		DB:     db,
+		Logger: logger,
+	}
+
+	documentCategoryHandler := &handlers.DocumentCategoryHandler{
+		DB:     db,
+		Logger: logger,
+	}
+
 	letterHandler := &handlers.SurvivorLetterHandler{
 		DB:     db,
 		Logger: logger,
@@ -77,6 +87,9 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 		r.Use(middleware.JWTAuth(cfg.JWTSecret, logger))
 
 		r.Post("/api/auth/refresh", authHandler.Refresh)
+
+		r.Get("/api/parties", partyHandler.List)
+		r.Get("/api/document-categories", documentCategoryHandler.List)
 
 		r.Get("/api/documents", docHandler.List)
 		r.Post("/api/documents", docHandler.Create)

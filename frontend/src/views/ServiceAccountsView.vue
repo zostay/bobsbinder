@@ -39,46 +39,24 @@
       </v-card-actions>
     </v-card>
 
-    <v-dialog v-model="showForm" max-width="600">
-      <v-card>
-        <v-card-title>{{ editing ? 'Edit Account' : 'Add Account' }}</v-card-title>
-        <v-card-text>
-          <v-text-field v-model="form.name" label="Name" required />
-          <v-select
-            v-model="form.type"
-            label="Type"
-            :items="[
-              { title: 'Financial Tool', value: 'financial_tool' },
-              { title: 'Backup Service', value: 'backup_service' },
-              { title: 'Tax Preparer', value: 'tax_preparer' },
-            ]"
-            required
-          />
-          <v-text-field v-model="form.provider" label="Provider" />
-          <v-text-field v-model="form.account_number" label="Account Number" />
-          <v-text-field v-model="form.contact_name" label="Contact Name" />
-          <v-text-field v-model="form.contact_phone" label="Contact Phone" />
-          <v-text-field v-model="form.contact_email" label="Contact Email" />
-          <v-textarea v-model="form.notes" label="Notes" rows="2" />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn @click="closeForm">Cancel</v-btn>
-          <v-btn color="primary" @click="save">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <DigitalInfoFormDialog
+      v-model="showForm"
+      :edit-data="editingAccount"
+      initial-type="financial_tool"
+      @saved="onSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useServiceAccountStore } from '../stores/serviceAccounts'
+import DigitalInfoFormDialog from '../components/DigitalInfoFormDialog.vue'
 import type { ServiceAccount } from '../types'
 
 const store = useServiceAccountStore()
 const showForm = ref(false)
-const editing = ref<number | null>(null)
+const editingAccount = ref<ServiceAccount | null>(null)
 
 const typeLabels: Record<string, string> = {
   financial_tool: 'Financial Tool',
@@ -86,54 +64,14 @@ const typeLabels: Record<string, string> = {
   tax_preparer: 'Tax Preparer',
 }
 
-const form = reactive({
-  name: '',
-  type: 'financial_tool' as 'financial_tool' | 'backup_service' | 'tax_preparer',
-  provider: '',
-  account_number: '',
-  contact_name: '',
-  contact_phone: '',
-  contact_email: '',
-  notes: '',
-})
-
-function resetForm() {
-  form.name = ''
-  form.type = 'financial_tool'
-  form.provider = ''
-  form.account_number = ''
-  form.contact_name = ''
-  form.contact_phone = ''
-  form.contact_email = ''
-  form.notes = ''
-  editing.value = null
-}
-
 function startEdit(account: ServiceAccount) {
-  form.name = account.name
-  form.type = account.type
-  form.provider = account.provider || ''
-  form.account_number = account.account_number || ''
-  form.contact_name = account.contact_name || ''
-  form.contact_phone = account.contact_phone || ''
-  form.contact_email = account.contact_email || ''
-  form.notes = account.notes || ''
-  editing.value = account.id
+  editingAccount.value = account
   showForm.value = true
 }
 
-function closeForm() {
-  showForm.value = false
-  resetForm()
-}
-
-async function save() {
-  if (editing.value) {
-    await store.updateAccount(editing.value, { ...form })
-  } else {
-    await store.createAccount({ ...form })
-  }
-  closeForm()
+function onSaved() {
+  editingAccount.value = null
+  store.fetchAccounts()
 }
 
 onMounted(() => {

@@ -31,6 +31,8 @@
           @edit-item="handleEditItem"
           @delete-item="handleDeleteItem"
           @unsuppress-item="handleUnsuppressItem"
+          @add-structured="handleAddStructured"
+          @edit-structured="handleEditStructured"
         />
 
         <v-card class="mb-4">
@@ -58,17 +60,38 @@
         </DocumentPreviewPanel>
       </v-col>
     </v-row>
+
+    <ContactFormDialog v-model="showContactDialog" :edit-data="editingContact" @saved="handleStructuredSaved" />
+    <DocumentFormDialog v-model="showDocumentDialog" :edit-data="editingDocument" @saved="handleStructuredSaved" />
+    <LocationFormDialog v-model="showLocationDialog" :edit-data="editingLocation" @saved="handleStructuredSaved" />
+    <DigitalInfoFormDialog v-model="showDigitalInfoDialog" :edit-data="editingDigitalInfo" @saved="handleStructuredSaved" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useSurvivorLetterStore } from '../stores/survivorLetter'
 import LetterSection from '../components/LetterSection.vue'
 import DocumentPreviewPanel from '../components/DocumentPreviewPanel.vue'
 import CoverLetterPrintTemplate from '../components/CoverLetterPrintTemplate.vue'
+import ContactFormDialog from '../components/ContactFormDialog.vue'
+import DocumentFormDialog from '../components/DocumentFormDialog.vue'
+import LocationFormDialog from '../components/LocationFormDialog.vue'
+import DigitalInfoFormDialog from '../components/DigitalInfoFormDialog.vue'
+import api from '../services/api'
+import type { Contact, Document, InsurancePolicy, Location, DigitalAccess, ServiceAccount } from '../types'
 
 const store = useSurvivorLetterStore()
+
+const showContactDialog = ref(false)
+const showDocumentDialog = ref(false)
+const showLocationDialog = ref(false)
+const showDigitalInfoDialog = ref(false)
+
+const editingContact = ref<Contact | null>(null)
+const editingDocument = ref<Document | InsurancePolicy | null>(null)
+const editingLocation = ref<Location | null>(null)
+const editingDigitalInfo = ref<DigitalAccess | ServiceAccount | null>(null)
 
 const boilerplate = reactive({
   greeting: '',
@@ -126,6 +149,74 @@ async function handleDeleteItem(itemId: number) {
 
 async function handleUnsuppressItem(itemId: number) {
   await store.unsuppressItem(itemId)
+}
+
+function handleAddStructured(sectionKey: string) {
+  switch (sectionKey) {
+    case 'contacts':
+      showContactDialog.value = true
+      break
+    case 'documents':
+      showDocumentDialog.value = true
+      break
+    case 'locations':
+      showLocationDialog.value = true
+      break
+    case 'digital_info':
+      showDigitalInfoDialog.value = true
+      break
+  }
+}
+
+const sourceTypeEndpoints: Record<string, string> = {
+  contact: '/contacts',
+  document: '/documents',
+  location: '/locations',
+  digital_access: '/digital-access',
+  insurance_policy: '/insurance-policies',
+  service_account: '/service-accounts',
+}
+
+async function handleEditStructured(sourceType: string, sourceId: number) {
+  const endpoint = sourceTypeEndpoints[sourceType]
+  if (!endpoint) return
+
+  const { data } = await api.get(`${endpoint}/${sourceId}`)
+
+  switch (sourceType) {
+    case 'contact':
+      editingContact.value = data as Contact
+      showContactDialog.value = true
+      break
+    case 'document':
+      editingDocument.value = data as Document
+      showDocumentDialog.value = true
+      break
+    case 'insurance_policy':
+      editingDocument.value = data as InsurancePolicy
+      showDocumentDialog.value = true
+      break
+    case 'location':
+      editingLocation.value = data as Location
+      showLocationDialog.value = true
+      break
+    case 'digital_access':
+      editingDigitalInfo.value = data as DigitalAccess
+      showDigitalInfoDialog.value = true
+      break
+    case 'service_account':
+      editingDigitalInfo.value = data as ServiceAccount
+      showDigitalInfoDialog.value = true
+      break
+  }
+}
+
+async function handleStructuredSaved() {
+  editingContact.value = null
+  editingDocument.value = null
+  editingLocation.value = null
+  editingDigitalInfo.value = null
+  await store.fetchLetter()
 }
 
 onMounted(() => {

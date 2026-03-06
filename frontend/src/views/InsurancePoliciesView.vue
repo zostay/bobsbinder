@@ -34,85 +34,33 @@
       </v-card-actions>
     </v-card>
 
-    <v-dialog v-model="showForm" max-width="600">
-      <v-card>
-        <v-card-title>{{ editing ? 'Edit Policy' : 'Add Policy' }}</v-card-title>
-        <v-card-text>
-          <v-text-field v-model="form.provider" label="Insurance Provider" required />
-          <v-text-field v-model="form.policy_number" label="Policy Number" />
-          <v-text-field v-model="form.type" label="Type (e.g. Term Life, Whole Life)" />
-          <v-text-field v-model.number="form.coverage_amount" label="Coverage Amount" type="number" prefix="$" />
-          <v-text-field v-model="form.beneficiary" label="Beneficiary" />
-          <v-text-field v-model="form.agent_name" label="Agent Name" />
-          <v-text-field v-model="form.agent_phone" label="Agent Phone" />
-          <v-textarea v-model="form.notes" label="Notes" rows="2" />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn @click="closeForm">Cancel</v-btn>
-          <v-btn color="primary" @click="save">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <DocumentFormDialog
+      v-model="showForm"
+      :edit-data="editingPolicy"
+      initial-type="insurance_policy"
+      @saved="onSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useInsurancePolicyStore } from '../stores/insurancePolicies'
+import DocumentFormDialog from '../components/DocumentFormDialog.vue'
 import type { InsurancePolicy } from '../types'
 
 const store = useInsurancePolicyStore()
 const showForm = ref(false)
-const editing = ref<number | null>(null)
-const form = reactive({
-  provider: '',
-  policy_number: '',
-  type: '',
-  coverage_amount: null as number | null,
-  beneficiary: '',
-  agent_name: '',
-  agent_phone: '',
-  notes: '',
-})
-
-function resetForm() {
-  form.provider = ''
-  form.policy_number = ''
-  form.type = ''
-  form.coverage_amount = null
-  form.beneficiary = ''
-  form.agent_name = ''
-  form.agent_phone = ''
-  form.notes = ''
-  editing.value = null
-}
+const editingPolicy = ref<InsurancePolicy | null>(null)
 
 function startEdit(policy: InsurancePolicy) {
-  form.provider = policy.provider
-  form.policy_number = policy.policy_number || ''
-  form.type = policy.type || ''
-  form.coverage_amount = policy.coverage_amount ?? null
-  form.beneficiary = policy.beneficiary || ''
-  form.agent_name = policy.agent_name || ''
-  form.agent_phone = policy.agent_phone || ''
-  form.notes = policy.notes || ''
-  editing.value = policy.id
+  editingPolicy.value = policy
   showForm.value = true
 }
 
-function closeForm() {
-  showForm.value = false
-  resetForm()
-}
-
-async function save() {
-  if (editing.value) {
-    await store.updatePolicy(editing.value, { ...form })
-  } else {
-    await store.createPolicy({ ...form })
-  }
-  closeForm()
+function onSaved() {
+  editingPolicy.value = null
+  store.fetchPolicies()
 }
 
 onMounted(() => {

@@ -16,19 +16,10 @@ type sectionDef struct {
 }
 
 var defaultSections = []sectionDef{
-	{Key: "contacts", Title: "People to Contact"},
-	{Key: "primary_documents", Title: "Primary Documents"},
-	{Key: "digital_access", Title: "Digital Access Information"},
-	{Key: "password_managers", Title: "Password Manager Access"},
-	{Key: "additional_documents", Title: "Additional Documents"},
-	{Key: "physical_documents", Title: "Important Physical Documents"},
-	{Key: "insurance_policies", Title: "Life Insurance Policies"},
-	{Key: "digital_locations", Title: "Digital Document Locations"},
-	{Key: "other_locations", Title: "Other Important Locations"},
-	{Key: "financial_tools", Title: "Financial Tools"},
-	{Key: "backup_services", Title: "Backup Services"},
-	{Key: "tax_preparer", Title: "Tax Preparation"},
-	{Key: "obituary_info", Title: "Information for Obituary"},
+	{Key: "contacts", Title: "Contacts"},
+	{Key: "documents", Title: "Documents"},
+	{Key: "locations", Title: "Important Locations"},
+	{Key: "digital_info", Title: "Digital Information"},
 }
 
 type computedItem struct {
@@ -70,7 +61,7 @@ func SyncLetter(db *sql.DB, logger *zap.Logger, userID int64) (*models.FullSurvi
 		return nil, fmt.Errorf("fetch letter: %w", err)
 	}
 
-	// 2. Ensure all 13 standard sections exist
+	// 2. Ensure all standard sections exist
 	for i, sec := range defaultSections {
 		_, err := db.Exec(`
 			INSERT INTO survivor_letter_sections (letter_id, section_key, title, sort_order)
@@ -159,37 +150,86 @@ func computeItems(db *sql.DB, userID int64, sectionKey string) ([]computedItem, 
 	switch sectionKey {
 	case "contacts":
 		return computeContacts(db, userID)
-	case "primary_documents":
-		return computeDocumentsByCategory(db, userID, []string{"will", "final-arrangements"})
-	case "digital_access":
-		return computeDigitalAccess(db, userID, []string{"computer", "phone"})
-	case "password_managers":
-		return computeDigitalAccess(db, userID, []string{"password_manager"})
-	case "additional_documents":
-		return computeDocumentsByCategory(db, userID, []string{"other"})
-	case "physical_documents":
-		return computeDocumentsByCategory(db, userID, []string{"poa-medical", "poa-financial", "medical-directives", "pre-certification", "memorial", "remains"})
-	case "insurance_policies":
-		return computeInsurancePolicies(db, userID)
-	case "digital_locations":
-		return computeLocations(db, userID, "digital")
-	case "other_locations":
-		return computeLocations(db, userID, "physical")
-	case "financial_tools":
-		return computeServiceAccounts(db, userID, "financial_tool")
-	case "backup_services":
-		return computeServiceAccounts(db, userID, "backup_service")
-	case "tax_preparer":
-		return computeServiceAccounts(db, userID, "tax_preparer")
-	case "obituary_info":
-		return computeObituaryInfo(db, userID)
+	case "documents":
+		return computeDocumentsAll(db, userID)
+	case "locations":
+		return computeLocationsAll(db, userID)
+	case "digital_info":
+		return computeDigitalInfoAll(db, userID)
 	default:
 		return nil, nil
 	}
 }
 
+func computeDocumentsAll(db *sql.DB, userID int64) ([]computedItem, error) {
+	allSlugs := []string{
+		"will", "final-arrangements", "other",
+		"poa-medical", "poa-financial", "medical-directives",
+		"pre-certification", "memorial", "remains",
+	}
+	docs, err := computeDocumentsByCategory(db, userID, allSlugs)
+	if err != nil {
+		return nil, err
+	}
+
+	policies, err := computeInsurancePolicies(db, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	obituary, err := computeObituaryInfo(db, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	items := append(docs, policies...)
+	items = append(items, obituary...)
+	return items, nil
+}
+
+func computeLocationsAll(db *sql.DB, userID int64) ([]computedItem, error) {
+	physical, err := computeLocations(db, userID, "physical")
+	if err != nil {
+		return nil, err
+	}
+
+	digital, err := computeLocations(db, userID, "digital")
+	if err != nil {
+		return nil, err
+	}
+
+	return append(physical, digital...), nil
+}
+
+func computeDigitalInfoAll(db *sql.DB, userID int64) ([]computedItem, error) {
+	access, err := computeDigitalAccess(db, userID, []string{"computer", "phone", "password_manager"})
+	if err != nil {
+		return nil, err
+	}
+
+	financial, err := computeServiceAccounts(db, userID, "financial_tool")
+	if err != nil {
+		return nil, err
+	}
+
+	backup, err := computeServiceAccounts(db, userID, "backup_service")
+	if err != nil {
+		return nil, err
+	}
+
+	taxPrep, err := computeServiceAccounts(db, userID, "tax_preparer")
+	if err != nil {
+		return nil, err
+	}
+
+	items := append(access, financial...)
+	items = append(items, backup...)
+	items = append(items, taxPrep...)
+	return items, nil
+}
+
 func computeContacts(db *sql.DB, userID int64) ([]computedItem, error) {
-	rows, err := db.Query(`SELECT id, name, role, phone, email FROM contacts WHERE user_id = ? ORDER BY name`, userID)
+	rows, err := db.Query(`SELECT id, name, role, phone, email FROM contacts WHERE user_id = ? ORDER BY is_primary DESC, name`, userID)
 	if err != nil {
 		return nil, err
 	}
