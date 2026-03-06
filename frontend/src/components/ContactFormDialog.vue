@@ -3,6 +3,11 @@
     <v-card>
       <v-card-title>{{ editData ? 'Edit Contact' : 'Add Contact' }}</v-card-title>
       <v-card-text>
+        <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+          Fields marked with <v-icon size="small">mdi-lock</v-icon> are confidential
+          and will not be sent to the printing service. Only place passwords, PINs,
+          access codes, or account numbers in locked fields.
+        </v-alert>
         <v-text-field v-model="form.name" label="Name" required />
         <v-checkbox v-model="form.is_primary" label="Primary contact" hide-details class="mb-2" />
         <v-text-field v-model="form.role" label="Role (e.g. Attorney, Pastor)" />
@@ -11,6 +16,10 @@
         <v-text-field v-model="form.email" label="Email" />
         <v-textarea v-model="form.address" label="Address" rows="2" />
         <v-textarea v-model="form.notes" label="Notes" rows="2" />
+        <v-textarea v-model="form.secure_notes" label="Confidential Notes"
+          rows="2" prepend-inner-icon="mdi-lock"
+          hint="Will NOT appear on the printed cover letter."
+          persistent-hint />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -47,6 +56,7 @@ const form = reactive({
   email: '',
   address: '',
   notes: '',
+  secure_notes: '',
 })
 
 function resetForm() {
@@ -58,6 +68,7 @@ function resetForm() {
   form.email = ''
   form.address = ''
   form.notes = ''
+  form.secure_notes = ''
 }
 
 watch(() => props.modelValue, (open) => {
@@ -71,6 +82,7 @@ watch(() => props.modelValue, (open) => {
       form.email = props.editData.email || ''
       form.address = props.editData.address || ''
       form.notes = props.editData.notes || ''
+      form.secure_notes = props.editData.secure_notes || ''
     } else {
       resetForm()
     }

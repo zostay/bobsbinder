@@ -16,11 +16,12 @@ type DocumentHandler struct {
 }
 
 type documentRequest struct {
-	PartyID    int64  `json:"party_id"`
-	CategoryID int64  `json:"category_id"`
-	Title      string `json:"title"`
-	Content    string `json:"content"`
-	Status     string `json:"status"`
+	PartyID     int64  `json:"party_id"`
+	CategoryID  int64  `json:"category_id"`
+	Title       string `json:"title"`
+	Content     string `json:"content"`
+	Status      string `json:"status"`
+	SecureNotes string `json:"secure_notes"`
 }
 
 func (h *DocumentHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +32,7 @@ func (h *DocumentHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.DB.Query(`
-		SELECT d.id, d.party_id, d.category_id, d.title, d.content, d.status, d.created_at, d.updated_at
+		SELECT d.id, d.party_id, d.category_id, d.title, d.content, d.status, d.secure_notes, d.created_at, d.updated_at
 		FROM documents d
 		JOIN parties p ON d.party_id = p.id
 		WHERE p.user_id = ?
@@ -47,21 +48,22 @@ func (h *DocumentHandler) List(w http.ResponseWriter, r *http.Request) {
 	var documents []map[string]any
 	for rows.Next() {
 		var id, partyID, categoryID int64
-		var title, content, status string
+		var title, content, status, secureNotes string
 		var createdAt, updatedAt string
-		if err := rows.Scan(&id, &partyID, &categoryID, &title, &content, &status, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&id, &partyID, &categoryID, &title, &content, &status, &secureNotes, &createdAt, &updatedAt); err != nil {
 			h.Logger.Error("failed to scan document", zap.Error(err))
 			continue
 		}
 		documents = append(documents, map[string]any{
-			"id":          id,
-			"party_id":    partyID,
-			"category_id": categoryID,
-			"title":       title,
-			"content":     content,
-			"status":      status,
-			"created_at":  createdAt,
-			"updated_at":  updatedAt,
+			"id":           id,
+			"party_id":     partyID,
+			"category_id":  categoryID,
+			"title":        title,
+			"content":      content,
+			"status":       status,
+			"secure_notes": secureNotes,
+			"created_at":   createdAt,
+			"updated_at":   updatedAt,
 		})
 	}
 
@@ -87,14 +89,14 @@ func (h *DocumentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var id, partyID, categoryID int64
-	var title, content, status string
+	var title, content, status, secureNotes string
 	var createdAt, updatedAt string
 	err = h.DB.QueryRow(`
-		SELECT d.id, d.party_id, d.category_id, d.title, d.content, d.status, d.created_at, d.updated_at
+		SELECT d.id, d.party_id, d.category_id, d.title, d.content, d.status, d.secure_notes, d.created_at, d.updated_at
 		FROM documents d
 		JOIN parties p ON d.party_id = p.id
 		WHERE d.id = ? AND p.user_id = ?
-	`, docID, userID).Scan(&id, &partyID, &categoryID, &title, &content, &status, &createdAt, &updatedAt)
+	`, docID, userID).Scan(&id, &partyID, &categoryID, &title, &content, &status, &secureNotes, &createdAt, &updatedAt)
 	if err != nil {
 		http.Error(w, `{"error":"document not found"}`, http.StatusNotFound)
 		return
@@ -102,14 +104,15 @@ func (h *DocumentHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
-		"id":          id,
-		"party_id":    partyID,
-		"category_id": categoryID,
-		"title":       title,
-		"content":     content,
-		"status":      status,
-		"created_at":  createdAt,
-		"updated_at":  updatedAt,
+		"id":           id,
+		"party_id":     partyID,
+		"category_id":  categoryID,
+		"title":        title,
+		"content":      content,
+		"status":       status,
+		"secure_notes": secureNotes,
+		"created_at":   createdAt,
+		"updated_at":   updatedAt,
 	})
 }
 
@@ -151,8 +154,8 @@ func (h *DocumentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.DB.Exec(
-		"INSERT INTO documents (party_id, category_id, title, content, status) VALUES (?, ?, ?, ?, ?)",
-		req.PartyID, req.CategoryID, req.Title, req.Content, req.Status,
+		"INSERT INTO documents (party_id, category_id, title, content, status, secure_notes) VALUES (?, ?, ?, ?, ?, ?)",
+		req.PartyID, req.CategoryID, req.Title, req.Content, req.Status, req.SecureNotes,
 	)
 	if err != nil {
 		h.Logger.Error("failed to create document", zap.Error(err))
@@ -165,12 +168,13 @@ func (h *DocumentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]any{
-		"id":          docID,
-		"party_id":    req.PartyID,
-		"category_id": req.CategoryID,
-		"title":       req.Title,
-		"content":     req.Content,
-		"status":      req.Status,
+		"id":           docID,
+		"party_id":     req.PartyID,
+		"category_id":  req.CategoryID,
+		"title":        req.Title,
+		"content":      req.Content,
+		"status":       req.Status,
+		"secure_notes": req.SecureNotes,
 	})
 }
 
@@ -196,9 +200,9 @@ func (h *DocumentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	result, err := h.DB.Exec(`
 		UPDATE documents d
 		JOIN parties p ON d.party_id = p.id
-		SET d.title = ?, d.content = ?, d.status = ?
+		SET d.title = ?, d.content = ?, d.status = ?, d.secure_notes = ?
 		WHERE d.id = ? AND p.user_id = ?
-	`, req.Title, req.Content, req.Status, docID, userID)
+	`, req.Title, req.Content, req.Status, req.SecureNotes, docID, userID)
 	if err != nil {
 		h.Logger.Error("failed to update document", zap.Error(err))
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)

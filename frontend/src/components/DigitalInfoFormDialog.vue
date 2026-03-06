@@ -3,6 +3,11 @@
     <v-card>
       <v-card-title>{{ dialogTitle }}</v-card-title>
       <v-card-text>
+        <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+          Fields marked with <v-icon size="small">mdi-lock</v-icon> are confidential
+          and will not be sent to the printing service. Only place passwords, PINs,
+          access codes, or account numbers in locked fields.
+        </v-alert>
         <v-select
           v-model="infoType"
           label="Type"
@@ -13,18 +18,26 @@
 
         <template v-if="isDigitalAccess">
           <v-text-field v-model="accessForm.name" label="Name" required />
-          <v-text-field v-model="accessForm.username" label="Username" />
-          <v-textarea v-model="accessForm.instructions" label="Access Instructions" rows="3" />
+          <v-text-field v-model="accessForm.username" label="Username" prepend-inner-icon="mdi-lock" />
+          <v-textarea v-model="accessForm.instructions" label="Access Instructions" rows="3" prepend-inner-icon="mdi-lock" />
+          <v-textarea v-model="accessForm.secure_notes" label="Confidential Notes"
+            rows="2" prepend-inner-icon="mdi-lock"
+            hint="Will NOT appear on the printed cover letter."
+            persistent-hint />
         </template>
 
         <template v-else>
           <v-text-field v-model="serviceForm.name" label="Name" required />
           <v-text-field v-model="serviceForm.provider" label="Provider" />
-          <v-text-field v-model="serviceForm.account_number" label="Account Number" />
+          <v-text-field v-model="serviceForm.account_number" label="Account Number" prepend-inner-icon="mdi-lock" />
           <v-text-field v-model="serviceForm.contact_name" label="Contact Name" />
           <v-text-field v-model="serviceForm.contact_phone" label="Contact Phone" />
           <v-text-field v-model="serviceForm.contact_email" label="Contact Email" />
           <v-textarea v-model="serviceForm.notes" label="Notes" rows="2" />
+          <v-textarea v-model="serviceForm.secure_notes" label="Confidential Notes"
+            rows="2" prepend-inner-icon="mdi-lock"
+            hint="Will NOT appear on the printed cover letter."
+            persistent-hint />
         </template>
       </v-card-text>
       <v-card-actions>
@@ -82,6 +95,7 @@ const accessForm = reactive({
   name: '',
   username: '',
   instructions: '',
+  secure_notes: '',
 })
 
 const serviceForm = reactive({
@@ -92,12 +106,14 @@ const serviceForm = reactive({
   contact_phone: '',
   contact_email: '',
   notes: '',
+  secure_notes: '',
 })
 
 function resetForms() {
   accessForm.name = ''
   accessForm.username = ''
   accessForm.instructions = ''
+  accessForm.secure_notes = ''
 
   serviceForm.name = ''
   serviceForm.provider = ''
@@ -106,6 +122,7 @@ function resetForms() {
   serviceForm.contact_phone = ''
   serviceForm.contact_email = ''
   serviceForm.notes = ''
+  serviceForm.secure_notes = ''
 }
 
 watch(() => props.modelValue, (open) => {
@@ -118,6 +135,7 @@ watch(() => props.modelValue, (open) => {
         accessForm.name = da.name
         accessForm.username = da.username || ''
         accessForm.instructions = da.instructions || ''
+        accessForm.secure_notes = da.secure_notes || ''
       } else {
         const sa = props.editData as ServiceAccount
         infoType.value = sa.type as InfoType
@@ -128,6 +146,7 @@ watch(() => props.modelValue, (open) => {
         serviceForm.contact_phone = sa.contact_phone || ''
         serviceForm.contact_email = sa.contact_email || ''
         serviceForm.notes = sa.notes || ''
+        serviceForm.secure_notes = sa.secure_notes || ''
       }
     } else {
       resetForms()

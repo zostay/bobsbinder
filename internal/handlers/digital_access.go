@@ -21,6 +21,7 @@ type digitalAccessRequest struct {
 	Username     string `json:"username"`
 	Instructions string `json:"instructions"`
 	LocationID   *int64 `json:"location_id"`
+	SecureNotes  string `json:"secure_notes"`
 }
 
 func (h *DigitalAccessHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +32,7 @@ func (h *DigitalAccessHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.DB.Query(`
-		SELECT id, user_id, type, name, username, instructions, location_id, created_at, updated_at
+		SELECT id, user_id, type, name, username, instructions, secure_notes, location_id, created_at, updated_at
 		FROM digital_access WHERE user_id = ? ORDER BY name
 	`, userID)
 	if err != nil {
@@ -44,15 +45,15 @@ func (h *DigitalAccessHandler) List(w http.ResponseWriter, r *http.Request) {
 	var items []map[string]any
 	for rows.Next() {
 		var id, uid int64
-		var daType, name, username, instructions, createdAt, updatedAt string
+		var daType, name, username, instructions, secureNotes, createdAt, updatedAt string
 		var locationID sql.NullInt64
-		if err := rows.Scan(&id, &uid, &daType, &name, &username, &instructions, &locationID, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&id, &uid, &daType, &name, &username, &instructions, &secureNotes, &locationID, &createdAt, &updatedAt); err != nil {
 			h.Logger.Error("failed to scan digital access", zap.Error(err))
 			continue
 		}
 		item := map[string]any{
 			"id": id, "user_id": uid, "type": daType, "name": name,
-			"username": username, "instructions": instructions,
+			"username": username, "instructions": instructions, "secure_notes": secureNotes,
 			"created_at": createdAt, "updated_at": updatedAt,
 		}
 		if locationID.Valid {
@@ -85,12 +86,12 @@ func (h *DigitalAccessHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var id, uid int64
-	var daType, name, username, instructions, createdAt, updatedAt string
+	var daType, name, username, instructions, secureNotes, createdAt, updatedAt string
 	var locationID sql.NullInt64
 	err = h.DB.QueryRow(`
-		SELECT id, user_id, type, name, username, instructions, location_id, created_at, updated_at
+		SELECT id, user_id, type, name, username, instructions, secure_notes, location_id, created_at, updated_at
 		FROM digital_access WHERE id = ? AND user_id = ?
-	`, daID, userID).Scan(&id, &uid, &daType, &name, &username, &instructions, &locationID, &createdAt, &updatedAt)
+	`, daID, userID).Scan(&id, &uid, &daType, &name, &username, &instructions, &secureNotes, &locationID, &createdAt, &updatedAt)
 	if err != nil {
 		http.Error(w, `{"error":"digital access not found"}`, http.StatusNotFound)
 		return
@@ -98,7 +99,7 @@ func (h *DigitalAccessHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	item := map[string]any{
 		"id": id, "user_id": uid, "type": daType, "name": name,
-		"username": username, "instructions": instructions,
+		"username": username, "instructions": instructions, "secure_notes": secureNotes,
 		"created_at": createdAt, "updated_at": updatedAt,
 	}
 	if locationID.Valid {
@@ -125,8 +126,8 @@ func (h *DigitalAccessHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.DB.Exec(
-		"INSERT INTO digital_access (user_id, type, name, username, instructions, location_id) VALUES (?, ?, ?, ?, ?, ?)",
-		userID, req.Type, req.Name, req.Username, req.Instructions, req.LocationID,
+		"INSERT INTO digital_access (user_id, type, name, username, instructions, secure_notes, location_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		userID, req.Type, req.Name, req.Username, req.Instructions, req.SecureNotes, req.LocationID,
 	)
 	if err != nil {
 		h.Logger.Error("failed to create digital access", zap.Error(err))
@@ -140,7 +141,8 @@ func (h *DigitalAccessHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]any{
 		"id": id, "user_id": userID, "type": req.Type, "name": req.Name,
-		"username": req.Username, "instructions": req.Instructions, "location_id": req.LocationID,
+		"username": req.Username, "instructions": req.Instructions, "secure_notes": req.SecureNotes,
+		"location_id": req.LocationID,
 	})
 }
 
@@ -164,9 +166,9 @@ func (h *DigitalAccessHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.DB.Exec(`
-		UPDATE digital_access SET type = ?, name = ?, username = ?, instructions = ?, location_id = ?
+		UPDATE digital_access SET type = ?, name = ?, username = ?, instructions = ?, secure_notes = ?, location_id = ?
 		WHERE id = ? AND user_id = ?
-	`, req.Type, req.Name, req.Username, req.Instructions, req.LocationID, daID, userID)
+	`, req.Type, req.Name, req.Username, req.Instructions, req.SecureNotes, req.LocationID, daID, userID)
 	if err != nil {
 		h.Logger.Error("failed to update digital access", zap.Error(err))
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)

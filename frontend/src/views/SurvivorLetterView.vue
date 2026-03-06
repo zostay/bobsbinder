@@ -58,6 +58,20 @@
             :signature="boilerplate.signature"
           />
         </DocumentPreviewPanel>
+
+        <v-btn v-if="!showConfidentialPreview" color="warning" variant="tonal" prepend-icon="mdi-lock"
+          class="mt-3" block @click="fetchConfidential">
+          Print Confidential Supplement
+        </v-btn>
+        <v-btn v-else color="grey" variant="tonal" prepend-icon="mdi-eye-off"
+          class="mt-3" block @click="hideConfidential">
+          Hide Confidential Supplement
+        </v-btn>
+
+        <DocumentPreviewPanel v-if="showConfidentialPreview && confidentialSections.length > 0"
+          title="Confidential Supplement" class="mt-3">
+          <ConfidentialPrintTemplate :sections="confidentialSections" />
+        </DocumentPreviewPanel>
       </v-col>
     </v-row>
 
@@ -74,12 +88,13 @@ import { useSurvivorLetterStore } from '../stores/survivorLetter'
 import LetterSection from '../components/LetterSection.vue'
 import DocumentPreviewPanel from '../components/DocumentPreviewPanel.vue'
 import CoverLetterPrintTemplate from '../components/CoverLetterPrintTemplate.vue'
+import ConfidentialPrintTemplate from '../components/ConfidentialPrintTemplate.vue'
 import ContactFormDialog from '../components/ContactFormDialog.vue'
 import DocumentFormDialog from '../components/DocumentFormDialog.vue'
 import LocationFormDialog from '../components/LocationFormDialog.vue'
 import DigitalInfoFormDialog from '../components/DigitalInfoFormDialog.vue'
 import api from '../services/api'
-import type { Contact, Document, InsurancePolicy, Location, DigitalAccess, ServiceAccount } from '../types'
+import type { Contact, Document, InsurancePolicy, Location, DigitalAccess, ServiceAccount, ConfidentialSection } from '../types'
 
 const store = useSurvivorLetterStore()
 
@@ -92,6 +107,9 @@ const editingContact = ref<Contact | null>(null)
 const editingDocument = ref<Document | InsurancePolicy | null>(null)
 const editingLocation = ref<Location | null>(null)
 const editingDigitalInfo = ref<DigitalAccess | ServiceAccount | null>(null)
+
+const confidentialSections = ref<ConfidentialSection[]>([])
+const showConfidentialPreview = ref(false)
 
 const boilerplate = reactive({
   greeting: '',
@@ -209,6 +227,17 @@ async function handleEditStructured(sourceType: string, sourceId: number) {
       showDigitalInfoDialog.value = true
       break
   }
+}
+
+async function fetchConfidential() {
+  const { data } = await api.get('/confidential')
+  confidentialSections.value = data as ConfidentialSection[]
+  showConfidentialPreview.value = true
+}
+
+function hideConfidential() {
+  showConfidentialPreview.value = false
+  confidentialSections.value = []
 }
 
 async function handleStructuredSaved() {

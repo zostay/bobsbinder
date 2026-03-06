@@ -29,6 +29,7 @@ export interface Document {
   title: string
   content?: string
   status: 'draft' | 'complete'
+  secure_notes?: string
   location_id?: number | null
   created_at: string
   updated_at: string
@@ -50,6 +51,7 @@ export interface Contact {
   address?: string
   notes?: string
   is_primary?: boolean
+  secure_notes?: string
   created_at: string
   updated_at: string
 }
@@ -62,6 +64,7 @@ export interface Location {
   description?: string
   address?: string
   access_instructions?: string
+  secure_notes?: string
   created_at: string
   updated_at: string
 }
@@ -74,6 +77,7 @@ export interface DigitalAccess {
   username?: string
   instructions?: string
   location_id?: number | null
+  secure_notes?: string
   created_at: string
   updated_at: string
 }
@@ -91,6 +95,7 @@ export interface InsurancePolicy {
   agent_phone?: string
   location_id?: number | null
   notes?: string
+  secure_notes?: string
   created_at: string
   updated_at: string
 }
@@ -106,6 +111,7 @@ export interface ServiceAccount {
   contact_phone?: string
   contact_email?: string
   notes?: string
+  secure_notes?: string
   created_at: string
   updated_at: string
 }
@@ -161,4 +167,19 @@ export interface SurvivorLetter {
 
 export interface FullSurvivorLetter extends SurvivorLetter {
   sections: SurvivorLetterSection[]
+}
+
+export interface ConfidentialField {
+  name: string
+  value: string
+}
+
+export interface ConfidentialItem {
+  label: string
+  fields: ConfidentialField[]
+}
+
+export interface ConfidentialSection {
+  title: string
+  items: ConfidentialItem[]
 }

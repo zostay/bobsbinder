@@ -3,6 +3,11 @@
     <v-card>
       <v-card-title>{{ dialogTitle }}</v-card-title>
       <v-card-text>
+        <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+          Fields marked with <v-icon size="small">mdi-lock</v-icon> are confidential
+          and will not be sent to the printing service. Only place passwords, PINs,
+          access codes, or account numbers in locked fields.
+        </v-alert>
         <v-select
           v-if="!editData"
           v-model="documentType"
@@ -26,17 +31,25 @@
             label="Status"
             :items="['draft', 'complete']"
           />
+          <v-textarea v-model="docForm.secure_notes" label="Confidential Notes"
+            rows="2" prepend-inner-icon="mdi-lock"
+            hint="Will NOT appear on the printed cover letter."
+            persistent-hint />
         </template>
 
         <template v-else-if="documentType === 'insurance_policy'">
           <v-text-field v-model="policyForm.provider" label="Insurance Provider" required />
-          <v-text-field v-model="policyForm.policy_number" label="Policy Number" />
+          <v-text-field v-model="policyForm.policy_number" label="Policy Number" prepend-inner-icon="mdi-lock" />
           <v-text-field v-model="policyForm.type" label="Type (e.g. Term Life, Whole Life)" />
           <v-text-field v-model.number="policyForm.coverage_amount" label="Coverage Amount" type="number" prefix="$" />
           <v-text-field v-model="policyForm.beneficiary" label="Beneficiary" />
           <v-text-field v-model="policyForm.agent_name" label="Agent Name" />
           <v-text-field v-model="policyForm.agent_phone" label="Agent Phone" />
           <v-textarea v-model="policyForm.notes" label="Notes" rows="2" />
+          <v-textarea v-model="policyForm.secure_notes" label="Confidential Notes"
+            rows="2" prepend-inner-icon="mdi-lock"
+            hint="Will NOT appear on the printed cover letter."
+            persistent-hint />
         </template>
 
         <template v-else-if="documentType === 'obituary_entry'">
@@ -115,6 +128,7 @@ const docForm = reactive({
   category_id: null as number | null,
   content: '',
   status: 'draft' as 'draft' | 'complete',
+  secure_notes: '',
 })
 
 const policyForm = reactive({
@@ -126,6 +140,7 @@ const policyForm = reactive({
   agent_name: '',
   agent_phone: '',
   notes: '',
+  secure_notes: '',
 })
 
 const obituaryForm = reactive({
@@ -141,6 +156,7 @@ function resetForms() {
   docForm.category_id = null
   docForm.content = ''
   docForm.status = 'draft'
+  docForm.secure_notes = ''
 
   policyForm.provider = ''
   policyForm.policy_number = ''
@@ -150,6 +166,7 @@ function resetForms() {
   policyForm.agent_name = ''
   policyForm.agent_phone = ''
   policyForm.notes = ''
+  policyForm.secure_notes = ''
 
   obituaryForm.type = 'survivor'
   obituaryForm.name = ''
@@ -170,6 +187,7 @@ watch(() => props.modelValue, (open) => {
         docForm.category_id = d.category_id
         docForm.content = d.content || ''
         docForm.status = d.status
+        docForm.secure_notes = d.secure_notes || ''
       } else if ('provider' in props.editData) {
         documentType.value = 'insurance_policy'
         const p = props.editData as InsurancePolicy
@@ -181,6 +199,7 @@ watch(() => props.modelValue, (open) => {
         policyForm.agent_name = p.agent_name || ''
         policyForm.agent_phone = p.agent_phone || ''
         policyForm.notes = p.notes || ''
+        policyForm.secure_notes = p.secure_notes || ''
       }
     } else {
       resetForms()

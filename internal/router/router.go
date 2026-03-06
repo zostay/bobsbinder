@@ -77,6 +77,11 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 		Logger: logger,
 	}
 
+	confidentialHandler := &handlers.ConfidentialHandler{
+		DB:     db,
+		Logger: logger,
+	}
+
 	// Public routes
 	r.Get("/api/health", handlers.HealthCheck)
 	r.Post("/api/auth/register", authHandler.Register)
@@ -131,6 +136,8 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 		r.Post("/api/parties/{partyId}/obituary-info", obituaryInfoHandler.Create)
 		r.Put("/api/parties/{partyId}/obituary-info/{id}", obituaryInfoHandler.Update)
 		r.Delete("/api/parties/{partyId}/obituary-info/{id}", obituaryInfoHandler.Delete)
+
+		r.Get("/api/confidential", confidentialHandler.GetConfidential)
 
 		r.Get("/api/survivor-letter", letterHandler.GetLetter)
 		r.Put("/api/survivor-letter", letterHandler.UpdateBoilerplate)

@@ -24,6 +24,7 @@ type serviceAccountRequest struct {
 	ContactPhone  string `json:"contact_phone"`
 	ContactEmail  string `json:"contact_email"`
 	Notes         string `json:"notes"`
+	SecureNotes   string `json:"secure_notes"`
 }
 
 func (h *ServiceAccountHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +35,7 @@ func (h *ServiceAccountHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.DB.Query(`
-		SELECT id, user_id, type, name, provider, account_number, contact_name, contact_phone, contact_email, notes, created_at, updated_at
+		SELECT id, user_id, type, name, provider, account_number, contact_name, contact_phone, contact_email, notes, secure_notes, created_at, updated_at
 		FROM service_accounts WHERE user_id = ? ORDER BY name
 	`, userID)
 	if err != nil {
@@ -47,8 +48,8 @@ func (h *ServiceAccountHandler) List(w http.ResponseWriter, r *http.Request) {
 	var accounts []map[string]any
 	for rows.Next() {
 		var id, uid int64
-		var saType, name, provider, accountNumber, contactName, contactPhone, contactEmail, notes, createdAt, updatedAt string
-		if err := rows.Scan(&id, &uid, &saType, &name, &provider, &accountNumber, &contactName, &contactPhone, &contactEmail, &notes, &createdAt, &updatedAt); err != nil {
+		var saType, name, provider, accountNumber, contactName, contactPhone, contactEmail, notes, secureNotes, createdAt, updatedAt string
+		if err := rows.Scan(&id, &uid, &saType, &name, &provider, &accountNumber, &contactName, &contactPhone, &contactEmail, &notes, &secureNotes, &createdAt, &updatedAt); err != nil {
 			h.Logger.Error("failed to scan service account", zap.Error(err))
 			continue
 		}
@@ -56,7 +57,7 @@ func (h *ServiceAccountHandler) List(w http.ResponseWriter, r *http.Request) {
 			"id": id, "user_id": uid, "type": saType, "name": name,
 			"provider": provider, "account_number": accountNumber,
 			"contact_name": contactName, "contact_phone": contactPhone,
-			"contact_email": contactEmail, "notes": notes,
+			"contact_email": contactEmail, "notes": notes, "secure_notes": secureNotes,
 			"created_at": createdAt, "updated_at": updatedAt,
 		})
 	}
@@ -83,11 +84,11 @@ func (h *ServiceAccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var id, uid int64
-	var saType, name, provider, accountNumber, contactName, contactPhone, contactEmail, notes, createdAt, updatedAt string
+	var saType, name, provider, accountNumber, contactName, contactPhone, contactEmail, notes, secureNotes, createdAt, updatedAt string
 	err = h.DB.QueryRow(`
-		SELECT id, user_id, type, name, provider, account_number, contact_name, contact_phone, contact_email, notes, created_at, updated_at
+		SELECT id, user_id, type, name, provider, account_number, contact_name, contact_phone, contact_email, notes, secure_notes, created_at, updated_at
 		FROM service_accounts WHERE id = ? AND user_id = ?
-	`, saID, userID).Scan(&id, &uid, &saType, &name, &provider, &accountNumber, &contactName, &contactPhone, &contactEmail, &notes, &createdAt, &updatedAt)
+	`, saID, userID).Scan(&id, &uid, &saType, &name, &provider, &accountNumber, &contactName, &contactPhone, &contactEmail, &notes, &secureNotes, &createdAt, &updatedAt)
 	if err != nil {
 		http.Error(w, `{"error":"service account not found"}`, http.StatusNotFound)
 		return
@@ -98,7 +99,7 @@ func (h *ServiceAccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 		"id": id, "user_id": uid, "type": saType, "name": name,
 		"provider": provider, "account_number": accountNumber,
 		"contact_name": contactName, "contact_phone": contactPhone,
-		"contact_email": contactEmail, "notes": notes,
+		"contact_email": contactEmail, "notes": notes, "secure_notes": secureNotes,
 		"created_at": createdAt, "updated_at": updatedAt,
 	})
 }
@@ -117,8 +118,8 @@ func (h *ServiceAccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.DB.Exec(
-		"INSERT INTO service_accounts (user_id, type, name, provider, account_number, contact_name, contact_phone, contact_email, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		userID, req.Type, req.Name, req.Provider, req.AccountNumber, req.ContactName, req.ContactPhone, req.ContactEmail, req.Notes,
+		"INSERT INTO service_accounts (user_id, type, name, provider, account_number, contact_name, contact_phone, contact_email, notes, secure_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		userID, req.Type, req.Name, req.Provider, req.AccountNumber, req.ContactName, req.ContactPhone, req.ContactEmail, req.Notes, req.SecureNotes,
 	)
 	if err != nil {
 		h.Logger.Error("failed to create service account", zap.Error(err))
@@ -134,7 +135,7 @@ func (h *ServiceAccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		"id": id, "user_id": userID, "type": req.Type, "name": req.Name,
 		"provider": req.Provider, "account_number": req.AccountNumber,
 		"contact_name": req.ContactName, "contact_phone": req.ContactPhone,
-		"contact_email": req.ContactEmail, "notes": req.Notes,
+		"contact_email": req.ContactEmail, "notes": req.Notes, "secure_notes": req.SecureNotes,
 	})
 }
 
@@ -159,9 +160,9 @@ func (h *ServiceAccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.DB.Exec(`
 		UPDATE service_accounts SET type = ?, name = ?, provider = ?, account_number = ?,
-		       contact_name = ?, contact_phone = ?, contact_email = ?, notes = ?
+		       contact_name = ?, contact_phone = ?, contact_email = ?, notes = ?, secure_notes = ?
 		WHERE id = ? AND user_id = ?
-	`, req.Type, req.Name, req.Provider, req.AccountNumber, req.ContactName, req.ContactPhone, req.ContactEmail, req.Notes, saID, userID)
+	`, req.Type, req.Name, req.Provider, req.AccountNumber, req.ContactName, req.ContactPhone, req.ContactEmail, req.Notes, req.SecureNotes, saID, userID)
 	if err != nil {
 		h.Logger.Error("failed to update service account", zap.Error(err))
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)

@@ -22,6 +22,8 @@ var defaultSections = []sectionDef{
 	{Key: "digital_info", Title: "Digital Information"},
 }
 
+const confidentialNote = " \u2014 Look inside the envelope marked \u201CConfidential\u201D"
+
 type computedItem struct {
 	SourceType string
 	SourceID   int64
@@ -229,7 +231,7 @@ func computeDigitalInfoAll(db *sql.DB, userID int64) ([]computedItem, error) {
 }
 
 func computeContacts(db *sql.DB, userID int64) ([]computedItem, error) {
-	rows, err := db.Query(`SELECT id, name, role, phone, email FROM contacts WHERE user_id = ? ORDER BY is_primary DESC, name`, userID)
+	rows, err := db.Query(`SELECT id, name, role, phone, email, secure_notes FROM contacts WHERE user_id = ? ORDER BY is_primary DESC, name`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +240,8 @@ func computeContacts(db *sql.DB, userID int64) ([]computedItem, error) {
 	var items []computedItem
 	for rows.Next() {
 		var id int64
-		var name, role, phone, email string
-		if err := rows.Scan(&id, &name, &role, &phone, &email); err != nil {
+		var name, role, phone, email, secureNotes string
+		if err := rows.Scan(&id, &name, &role, &phone, &email, &secureNotes); err != nil {
 			continue
 		}
 		parts := []string{name}
@@ -252,10 +254,14 @@ func computeContacts(db *sql.DB, userID int64) ([]computedItem, error) {
 		if email != "" {
 			parts = append(parts, "- "+email)
 		}
+		content := strings.Join(parts, " ")
+		if secureNotes != "" {
+			content += confidentialNote
+		}
 		items = append(items, computedItem{
 			SourceType: "contact",
 			SourceID:   id,
-			Content:    strings.Join(parts, " "),
+			Content:    content,
 			ItemType:   "numbered",
 		})
 	}
@@ -275,7 +281,7 @@ func computeDocumentsByCategory(db *sql.DB, userID int64, categorySlugs []string
 	}
 
 	query := fmt.Sprintf(`
-		SELECT d.id, d.title, dc.name as category_name, l.name as location_name
+		SELECT d.id, d.title, dc.name as category_name, l.name as location_name, d.secure_notes
 		FROM documents d
 		JOIN parties p ON d.party_id = p.id
 		JOIN document_categories dc ON d.category_id = dc.id
@@ -293,14 +299,17 @@ func computeDocumentsByCategory(db *sql.DB, userID int64, categorySlugs []string
 	var items []computedItem
 	for rows.Next() {
 		var id int64
-		var title, categoryName string
+		var title, categoryName, secureNotes string
 		var locationName sql.NullString
-		if err := rows.Scan(&id, &title, &categoryName, &locationName); err != nil {
+		if err := rows.Scan(&id, &title, &categoryName, &locationName, &secureNotes); err != nil {
 			continue
 		}
 		content := fmt.Sprintf("%s (%s)", title, categoryName)
 		if locationName.Valid && locationName.String != "" {
 			content += fmt.Sprintf(" - located at %s", locationName.String)
+		}
+		if secureNotes != "" {
+			content += confidentialNote
 		}
 		items = append(items, computedItem{
 			SourceType: "document",
@@ -325,7 +334,7 @@ func computeDigitalAccess(db *sql.DB, userID int64, types []string) ([]computedI
 	}
 
 	query := fmt.Sprintf(`
-		SELECT da.id, da.name, da.type, da.username, da.instructions
+		SELECT da.id, da.name, da.type, da.username, da.instructions, da.secure_notes
 		FROM digital_access da
 		WHERE da.user_id = ? AND da.type IN (%s)
 		ORDER BY da.name
@@ -340,16 +349,13 @@ func computeDigitalAccess(db *sql.DB, userID int64, types []string) ([]computedI
 	var items []computedItem
 	for rows.Next() {
 		var id int64
-		var name, daType, username, instructions string
-		if err := rows.Scan(&id, &name, &daType, &username, &instructions); err != nil {
+		var name, daType, username, instructions, secureNotes string
+		if err := rows.Scan(&id, &name, &daType, &username, &instructions, &secureNotes); err != nil {
 			continue
 		}
 		content := name
-		if username != "" {
-			content += fmt.Sprintf(" (user: %s)", username)
-		}
-		if instructions != "" {
-			content += " - " + instructions
+		if username != "" || instructions != "" || secureNotes != "" {
+			content += confidentialNote
 		}
 		items = append(items, computedItem{
 			SourceType: "digital_access",
@@ -363,7 +369,7 @@ func computeDigitalAccess(db *sql.DB, userID int64, types []string) ([]computedI
 
 func computeInsurancePolicies(db *sql.DB, userID int64) ([]computedItem, error) {
 	rows, err := db.Query(`
-		SELECT ip.id, ip.provider, ip.policy_number, ip.type, ip.coverage_amount, ip.beneficiary, ip.agent_name, ip.agent_phone
+		SELECT ip.id, ip.provider, ip.policy_number, ip.type, ip.coverage_amount, ip.beneficiary, ip.agent_name, ip.agent_phone, ip.secure_notes
 		FROM insurance_policies ip
 		WHERE ip.user_id = ?
 		ORDER BY ip.provider
@@ -376,17 +382,14 @@ func computeInsurancePolicies(db *sql.DB, userID int64) ([]computedItem, error) 
 	var items []computedItem
 	for rows.Next() {
 		var id int64
-		var provider, policyNumber, pType, beneficiary, agentName, agentPhone string
+		var provider, policyNumber, pType, beneficiary, agentName, agentPhone, secureNotes string
 		var coverageAmount sql.NullFloat64
-		if err := rows.Scan(&id, &provider, &policyNumber, &pType, &coverageAmount, &beneficiary, &agentName, &agentPhone); err != nil {
+		if err := rows.Scan(&id, &provider, &policyNumber, &pType, &coverageAmount, &beneficiary, &agentName, &agentPhone, &secureNotes); err != nil {
 			continue
 		}
 		content := provider
 		if pType != "" {
 			content += fmt.Sprintf(" (%s)", pType)
-		}
-		if policyNumber != "" {
-			content += fmt.Sprintf(" #%s", policyNumber)
 		}
 		if coverageAmount.Valid {
 			content += fmt.Sprintf(" - $%.2f", coverageAmount.Float64)
@@ -400,6 +403,9 @@ func computeInsurancePolicies(db *sql.DB, userID int64) ([]computedItem, error) 
 				content += fmt.Sprintf(" (%s)", agentPhone)
 			}
 		}
+		if policyNumber != "" || secureNotes != "" {
+			content += confidentialNote
+		}
 		items = append(items, computedItem{
 			SourceType: "insurance_policy",
 			SourceID:   id,
@@ -412,7 +418,7 @@ func computeInsurancePolicies(db *sql.DB, userID int64) ([]computedItem, error) 
 
 func computeLocations(db *sql.DB, userID int64, locType string) ([]computedItem, error) {
 	rows, err := db.Query(`
-		SELECT id, name, description, address, access_instructions
+		SELECT id, name, description, address, access_instructions, secure_notes
 		FROM locations WHERE user_id = ? AND type = ? ORDER BY name
 	`, userID, locType)
 	if err != nil {
@@ -423,8 +429,8 @@ func computeLocations(db *sql.DB, userID int64, locType string) ([]computedItem,
 	var items []computedItem
 	for rows.Next() {
 		var id int64
-		var name, description, address, accessInstructions string
-		if err := rows.Scan(&id, &name, &description, &address, &accessInstructions); err != nil {
+		var name, description, address, accessInstructions, secureNotes string
+		if err := rows.Scan(&id, &name, &description, &address, &accessInstructions, &secureNotes); err != nil {
 			continue
 		}
 		content := name
@@ -434,8 +440,8 @@ func computeLocations(db *sql.DB, userID int64, locType string) ([]computedItem,
 		if address != "" {
 			content += fmt.Sprintf(" (%s)", address)
 		}
-		if accessInstructions != "" {
-			content += " [" + accessInstructions + "]"
+		if accessInstructions != "" || secureNotes != "" {
+			content += confidentialNote
 		}
 		items = append(items, computedItem{
 			SourceType: "location",
@@ -449,7 +455,7 @@ func computeLocations(db *sql.DB, userID int64, locType string) ([]computedItem,
 
 func computeServiceAccounts(db *sql.DB, userID int64, saType string) ([]computedItem, error) {
 	rows, err := db.Query(`
-		SELECT id, name, provider, account_number, contact_name, contact_phone, contact_email, notes
+		SELECT id, name, provider, account_number, contact_name, contact_phone, contact_email, notes, secure_notes
 		FROM service_accounts WHERE user_id = ? AND type = ? ORDER BY name
 	`, userID, saType)
 	if err != nil {
@@ -460,22 +466,22 @@ func computeServiceAccounts(db *sql.DB, userID int64, saType string) ([]computed
 	var items []computedItem
 	for rows.Next() {
 		var id int64
-		var name, provider, accountNumber, contactName, contactPhone, contactEmail, notes string
-		if err := rows.Scan(&id, &name, &provider, &accountNumber, &contactName, &contactPhone, &contactEmail, &notes); err != nil {
+		var name, provider, accountNumber, contactName, contactPhone, contactEmail, notes, secureNotes string
+		if err := rows.Scan(&id, &name, &provider, &accountNumber, &contactName, &contactPhone, &contactEmail, &notes, &secureNotes); err != nil {
 			continue
 		}
 		content := name
 		if provider != "" {
 			content += " (" + provider + ")"
 		}
-		if accountNumber != "" {
-			content += " #" + accountNumber
-		}
 		if contactName != "" {
 			content += fmt.Sprintf(", contact: %s", contactName)
 			if contactPhone != "" {
 				content += " " + contactPhone
 			}
+		}
+		if accountNumber != "" || secureNotes != "" {
+			content += confidentialNote
 		}
 		items = append(items, computedItem{
 			SourceType: "service_account",
