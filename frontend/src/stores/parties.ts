@@ -19,5 +19,21 @@ export const usePartyStore = defineStore('parties', () => {
     }
   }
 
-  return { parties, loading, selfParty, fetchParties }
+  async function createParty(party: Partial<Party>) {
+    const { data } = await api.post<Party>('/parties', party)
+    parties.value.push(data)
+    return data
+  }
+
+  async function updateParty(id: number, party: Partial<Party>) {
+    await api.put(`/parties/${id}`, party)
+    await fetchParties()
+  }
+
+  async function deleteParty(id: number) {
+    await api.delete(`/parties/${id}`)
+    parties.value = parties.value.filter((p) => p.id !== id)
+  }
+
+  return { parties, loading, selfParty, fetchParties, createParty, updateParty, deleteParty }
 })

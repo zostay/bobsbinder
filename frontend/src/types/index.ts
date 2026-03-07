@@ -169,6 +169,21 @@ export interface FullSurvivorLetter extends SurvivorLetter {
   sections: SurvivorLetterSection[]
 }
 
+export interface ChecklistItem {
+  category_id: number
+  category_slug: string
+  category_name: string
+  status: 'pending' | 'complete' | 'not_applicable'
+  has_document: boolean
+}
+
+export interface PartyChecklist {
+  party_id: number
+  party_name: string
+  party_relationship: string
+  items: ChecklistItem[]
+}
+
 export interface ConfidentialField {
   name: string
   value: string

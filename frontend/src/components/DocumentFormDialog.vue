@@ -90,6 +90,8 @@ const props = defineProps<{
   modelValue: boolean
   editData?: Document | InsurancePolicy | null
   initialType?: 'document' | 'insurance_policy' | 'obituary_entry'
+  initialCategoryId?: number
+  partyId?: number
 }>()
 
 const emit = defineEmits<{
@@ -203,6 +205,9 @@ watch(() => props.modelValue, (open) => {
       }
     } else {
       resetForms()
+      if (props.initialCategoryId) {
+        docForm.category_id = props.initialCategoryId
+      }
     }
   }
 })
@@ -217,7 +222,9 @@ async function save() {
     if (props.editData && 'title' in props.editData) {
       await documentStore.updateDocument(props.editData.id, { ...docForm })
     } else {
-      await documentStore.createDocument({ ...docForm })
+      const payload: Record<string, any> = { ...docForm }
+      if (props.partyId) payload.party_id = props.partyId
+      await documentStore.createDocument(payload)
     }
   } else if (documentType.value === 'insurance_policy') {
     if (props.editData && 'provider' in props.editData) {
@@ -226,9 +233,9 @@ async function save() {
       await policyStore.createPolicy({ ...policyForm })
     }
   } else if (documentType.value === 'obituary_entry') {
-    const selfParty = partyStore.selfParty
-    if (selfParty) {
-      await obituaryStore.createItem(selfParty.id, {
+    const targetPartyId = props.partyId || partyStore.selfParty?.id
+    if (targetPartyId) {
+      await obituaryStore.createItem(targetPartyId, {
         ...obituaryForm,
         event_date: obituaryForm.event_date || null,
       })

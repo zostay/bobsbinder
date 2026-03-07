@@ -82,6 +82,11 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 		Logger: logger,
 	}
 
+	checklistHandler := &handlers.ChecklistHandler{
+		DB:     db,
+		Logger: logger,
+	}
+
 	// Public routes
 	r.Get("/api/health", handlers.HealthCheck)
 	r.Post("/api/auth/register", authHandler.Register)
@@ -94,7 +99,14 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 		r.Post("/api/auth/refresh", authHandler.Refresh)
 
 		r.Get("/api/parties", partyHandler.List)
+		r.Post("/api/parties", partyHandler.Create)
+		r.Put("/api/parties/{id}", partyHandler.Update)
+		r.Delete("/api/parties/{id}", partyHandler.Delete)
 		r.Get("/api/document-categories", documentCategoryHandler.List)
+
+		r.Get("/api/checklist", checklistHandler.ListAll)
+		r.Get("/api/parties/{partyId}/checklist", checklistHandler.ListForParty)
+		r.Put("/api/parties/{partyId}/checklist/{categoryId}", checklistHandler.UpdateStatus)
 
 		r.Get("/api/documents", docHandler.List)
 		r.Post("/api/documents", docHandler.Create)

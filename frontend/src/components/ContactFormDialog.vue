@@ -38,6 +38,7 @@ import type { Contact } from '../types'
 const props = defineProps<{
   modelValue: boolean
   editData?: Contact | null
+  defaults?: Partial<Contact>
 }>()
 
 const emit = defineEmits<{
@@ -85,6 +86,11 @@ watch(() => props.modelValue, (open) => {
       form.secure_notes = props.editData.secure_notes || ''
     } else {
       resetForm()
+      if (props.defaults) {
+        if (props.defaults.is_primary !== undefined) form.is_primary = props.defaults.is_primary
+        if (props.defaults.role) form.role = props.defaults.role
+        if (props.defaults.relationship) form.relationship = props.defaults.relationship
+      }
     }
   }
 })
