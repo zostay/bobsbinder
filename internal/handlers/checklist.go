@@ -175,7 +175,7 @@ func (h *ChecklistHandler) buildChecklists(userID int64, filterPartyID int64) ([
 		rows, err := h.DB.Query(`
 			SELECT dc.id, dc.slug, dc.name,
 				COALESCE(ci.status, 'pending') as status,
-				EXISTS(SELECT 1 FROM documents d WHERE d.party_id = ? AND d.category_id = dc.id) as has_document
+				EXISTS(SELECT 1 FROM documents d WHERE d.party_id = ? AND d.category_id = dc.id AND d.deleted_at IS NULL) as has_document
 			FROM document_categories dc
 			LEFT JOIN checklist_items ci ON ci.category_id = dc.id AND ci.party_id = ?
 			ORDER BY dc.sort_order

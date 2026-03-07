@@ -76,7 +76,7 @@
     </v-row>
 
     <ContactFormDialog v-model="showContactDialog" :edit-data="editingContact" @saved="handleStructuredSaved" />
-    <DocumentFormDialog v-model="showDocumentDialog" :edit-data="editingDocument" @saved="handleStructuredSaved" />
+    <ReferenceDocFormDialog v-model="showDocumentDialog" :edit-data="editingDocument" @saved="handleStructuredSaved" />
     <LocationFormDialog v-model="showLocationDialog" :edit-data="editingLocation" @saved="handleStructuredSaved" />
     <DigitalInfoFormDialog v-model="showDigitalInfoDialog" :edit-data="editingDigitalInfo" @saved="handleStructuredSaved" />
   </div>
@@ -84,18 +84,20 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSurvivorLetterStore } from '../stores/survivorLetter'
 import LetterSection from '../components/LetterSection.vue'
 import DocumentPreviewPanel from '../components/DocumentPreviewPanel.vue'
 import CoverLetterPrintTemplate from '../components/CoverLetterPrintTemplate.vue'
 import ConfidentialPrintTemplate from '../components/ConfidentialPrintTemplate.vue'
 import ContactFormDialog from '../components/ContactFormDialog.vue'
-import DocumentFormDialog from '../components/DocumentFormDialog.vue'
+import ReferenceDocFormDialog from '../components/ReferenceDocFormDialog.vue'
 import LocationFormDialog from '../components/LocationFormDialog.vue'
 import DigitalInfoFormDialog from '../components/DigitalInfoFormDialog.vue'
 import api from '../services/api'
-import type { Contact, Document, InsurancePolicy, Location, DigitalAccess, ServiceAccount, ConfidentialSection } from '../types'
+import type { Contact, Document, Location, DigitalAccess, ServiceAccount, ConfidentialSection } from '../types'
 
+const router = useRouter()
 const store = useSurvivorLetterStore()
 
 const showContactDialog = ref(false)
@@ -104,7 +106,7 @@ const showLocationDialog = ref(false)
 const showDigitalInfoDialog = ref(false)
 
 const editingContact = ref<Contact | null>(null)
-const editingDocument = ref<Document | InsurancePolicy | null>(null)
+const editingDocument = ref<Document | null>(null)
 const editingLocation = ref<Location | null>(null)
 const editingDigitalInfo = ref<DigitalAccess | ServiceAccount | null>(null)
 
@@ -206,12 +208,18 @@ async function handleEditStructured(sourceType: string, sourceId: number) {
       editingContact.value = data as Contact
       showContactDialog.value = true
       break
-    case 'document':
-      editingDocument.value = data as Document
-      showDocumentDialog.value = true
+    case 'document': {
+      const doc = data as Document
+      if (doc.doc_type === 'typed') {
+        router.push({ name: 'document-edit', params: { id: doc.id } })
+      } else {
+        editingDocument.value = doc
+        showDocumentDialog.value = true
+      }
       break
+    }
     case 'insurance_policy':
-      editingDocument.value = data as InsurancePolicy
+      editingDocument.value = data as Document
       showDocumentDialog.value = true
       break
     case 'location':

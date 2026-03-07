@@ -87,6 +87,12 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 		Logger: logger,
 	}
 
+	documentFileHandler := &handlers.DocumentFileHandler{
+		DB:        db,
+		Logger:    logger,
+		UploadDir: cfg.UploadDir,
+	}
+
 	// Public routes
 	r.Get("/api/health", handlers.HealthCheck)
 	r.Post("/api/auth/register", authHandler.Register)
@@ -110,9 +116,17 @@ func New(db *sql.DB, cfg *config.Config, logger *zap.Logger) *chi.Mux {
 
 		r.Get("/api/documents", docHandler.List)
 		r.Post("/api/documents", docHandler.Create)
+		r.Get("/api/documents/trash", docHandler.ListTrash)
 		r.Get("/api/documents/{id}", docHandler.Get)
 		r.Put("/api/documents/{id}", docHandler.Update)
 		r.Delete("/api/documents/{id}", docHandler.Delete)
+		r.Post("/api/documents/{id}/restore", docHandler.Restore)
+		r.Delete("/api/documents/{id}/permanent", docHandler.PermanentDelete)
+
+		r.Post("/api/documents/{id}/files", documentFileHandler.UploadFile)
+		r.Get("/api/documents/{id}/files", documentFileHandler.ListFiles)
+		r.Get("/api/documents/{id}/files/{fileId}", documentFileHandler.DownloadFile)
+		r.Delete("/api/documents/{id}/files/{fileId}", documentFileHandler.DeleteFile)
 
 		r.Get("/api/contacts", contactHandler.List)
 		r.Post("/api/contacts", contactHandler.Create)

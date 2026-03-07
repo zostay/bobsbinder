@@ -5,13 +5,14 @@ import (
 )
 
 type Config struct {
-	APIPort   string `mapstructure:"API_PORT"`
-	JWTSecret string `mapstructure:"JWT_SECRET"`
-	DBHost    string `mapstructure:"DB_HOST"`
-	DBPort    string `mapstructure:"DB_PORT"`
-	DBUser    string `mapstructure:"DB_USER"`
+	APIPort    string `mapstructure:"API_PORT"`
+	JWTSecret  string `mapstructure:"JWT_SECRET"`
+	DBHost     string `mapstructure:"DB_HOST"`
+	DBPort     string `mapstructure:"DB_PORT"`
+	DBUser     string `mapstructure:"DB_USER"`
 	DBPassword string `mapstructure:"DB_PASSWORD"`
-	DBName    string `mapstructure:"DB_NAME"`
+	DBName     string `mapstructure:"DB_NAME"`
+	UploadDir  string `mapstructure:"UPLOAD_DIR"`
 }
 
 func Load() (*Config, error) {
@@ -22,6 +23,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("DB_USER", "bobsbinder")
 	viper.SetDefault("DB_PASSWORD", "bobsbinder")
 	viper.SetDefault("DB_NAME", "bobsbinder")
+	viper.SetDefault("UPLOAD_DIR", "./uploads")
 
 	viper.AutomaticEnv()
 

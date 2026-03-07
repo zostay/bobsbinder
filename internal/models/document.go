@@ -11,14 +11,17 @@ type DocumentCategory struct {
 }
 
 type Document struct {
-	ID         int64     `json:"id"`
-	PartyID    int64     `json:"party_id"`
-	CategoryID int64     `json:"category_id"`
-	Title      string    `json:"title"`
-	Content    string    `json:"content,omitempty"`
-	Status     string    `json:"status"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID          int64     `json:"id"`
+	PartyID     int64     `json:"party_id"`
+	CategoryID  int64     `json:"category_id"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content,omitempty"`
+	Status      string    `json:"status"`
+	DocType     string    `json:"doc_type"`
+	LocationID  *int64    `json:"location_id,omitempty"`
+	SecureNotes string    `json:"secure_notes,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type DocumentFile struct {

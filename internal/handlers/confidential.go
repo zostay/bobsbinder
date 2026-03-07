@@ -109,7 +109,7 @@ func (h *ConfidentialHandler) queryDocuments(userID int64) ([]confidentialItem, 
 	rows, err := h.DB.Query(`
 		SELECT d.title, d.secure_notes FROM documents d
 		JOIN parties p ON d.party_id = p.id
-		WHERE p.user_id = ? AND d.secure_notes != ''
+		WHERE p.user_id = ? AND d.secure_notes != '' AND d.deleted_at IS NULL
 		ORDER BY d.title
 	`, userID)
 	if err != nil {

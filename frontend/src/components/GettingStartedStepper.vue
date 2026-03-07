@@ -1,5 +1,5 @@
 <template>
-  <v-card v-if="!completed" class="mb-6">
+  <v-card class="mb-6">
     <v-card-title class="d-flex align-center">
       <span>Getting Started</span>
       <v-spacer />
@@ -181,7 +181,7 @@
     <ContactFormDialog v-model="showContactDialog" :defaults="{ is_primary: true }" @saved="contactStore.fetchContacts()" />
     <LocationFormDialog v-model="showLocationDialog" @saved="locationStore.fetchLocations()" />
     <DigitalInfoFormDialog v-model="showDigitalDialog" @saved="digitalStore.fetchItems()" />
-    <DocumentFormDialog
+    <ReferenceDocFormDialog
       v-model="showDocDialog"
       :initial-category-id="docCategoryId"
       :party-id="selectedPartyId"
@@ -198,6 +198,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { usePartyStore } from '../stores/parties'
 import { useContactStore } from '../stores/contacts'
 import { useLocationStore } from '../stores/locations'
@@ -210,9 +211,11 @@ import ContactFormDialog from './ContactFormDialog.vue'
 import LocationFormDialog from './LocationFormDialog.vue'
 import DigitalInfoFormDialog from './DigitalInfoFormDialog.vue'
 import DocumentFormDialog from './DocumentFormDialog.vue'
+import ReferenceDocFormDialog from './ReferenceDocFormDialog.vue'
 
 const STORAGE_KEY = 'bobsbinder_stepper_completed'
 
+const router = useRouter()
 const partyStore = usePartyStore()
 const contactStore = useContactStore()
 const locationStore = useLocationStore()
@@ -222,7 +225,6 @@ const obituaryStore = useObituaryInfoStore()
 const categoryStore = useDocumentCategoryStore()
 
 const step = ref(1)
-const completed = ref(localStorage.getItem(STORAGE_KEY) === 'true')
 
 const showPartyDialog = ref(false)
 const showContactDialog = ref(false)
@@ -300,12 +302,12 @@ async function onObituarySaved() {
 }
 
 function dismiss() {
-  completed.value = true
+  router.push({ name: 'home' })
 }
 
 function finish() {
-  completed.value = true
   localStorage.setItem(STORAGE_KEY, 'true')
+  router.push({ name: 'home' })
 }
 
 onMounted(async () => {

@@ -29,10 +29,21 @@ export interface Document {
   title: string
   content?: string
   status: 'draft' | 'complete'
+  doc_type: 'reference' | 'typed'
   secure_notes?: string
   location_id?: number | null
+  deleted_at?: string | null
   created_at: string
   updated_at: string
+}
+
+export interface DocumentFile {
+  id: number
+  document_id: number
+  filename: string
+  content_type: string
+  file_size: number
+  created_at: string
 }
 
 export interface AuthResponse {

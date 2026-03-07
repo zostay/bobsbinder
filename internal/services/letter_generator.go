@@ -286,7 +286,7 @@ func computeDocumentsByCategory(db *sql.DB, userID int64, categorySlugs []string
 		JOIN parties p ON d.party_id = p.id
 		JOIN document_categories dc ON d.category_id = dc.id
 		LEFT JOIN locations l ON d.location_id = l.id
-		WHERE p.user_id = ? AND dc.slug IN (%s)
+		WHERE p.user_id = ? AND dc.slug IN (%s) AND d.deleted_at IS NULL
 		ORDER BY d.title
 	`, strings.Join(placeholders, ","))
 

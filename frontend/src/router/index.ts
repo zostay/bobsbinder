@@ -10,12 +10,21 @@ import DigitalAccessView from '../views/DigitalAccessView.vue'
 import InsurancePoliciesView from '../views/InsurancePoliciesView.vue'
 import ServiceAccountsView from '../views/ServiceAccountsView.vue'
 import SurvivorLetterView from '../views/SurvivorLetterView.vue'
+import GettingStartedView from '../views/GettingStartedView.vue'
+import DocumentEditorView from '../views/DocumentEditorView.vue'
+import DocumentDetailView from '../views/DocumentDetailView.vue'
 
 const routes = [
   {
     path: '/',
     name: 'home',
     component: HomeView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/getting-started',
+    name: 'getting-started',
+    component: GettingStartedView,
     meta: { requiresAuth: true },
   },
   {
@@ -32,6 +41,24 @@ const routes = [
     path: '/documents',
     name: 'documents',
     component: DocumentsView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/documents/new',
+    name: 'document-new',
+    component: DocumentEditorView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/documents/:id/edit',
+    name: 'document-edit',
+    component: DocumentEditorView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/documents/:id',
+    name: 'document-detail',
+    component: DocumentDetailView,
     meta: { requiresAuth: true },
   },
   {

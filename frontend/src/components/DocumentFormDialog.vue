@@ -9,35 +9,14 @@
           access codes, or account numbers in locked fields.
         </v-alert>
         <v-select
-          v-if="!editData"
+          v-if="!editData && !initialType"
           v-model="documentType"
           label="Type"
           :items="typeOptions"
           class="mb-2"
         />
 
-        <template v-if="documentType === 'document'">
-          <v-text-field v-model="docForm.title" label="Title" required />
-          <v-select
-            v-model="docForm.category_id"
-            label="Category"
-            :items="categoryItems"
-            item-title="name"
-            item-value="id"
-          />
-          <v-textarea v-model="docForm.content" label="Content" rows="3" />
-          <v-select
-            v-model="docForm.status"
-            label="Status"
-            :items="['draft', 'complete']"
-          />
-          <v-textarea v-model="docForm.secure_notes" label="Confidential Notes"
-            rows="2" prepend-inner-icon="mdi-lock"
-            hint="Will NOT appear on the printed cover letter."
-            persistent-hint />
-        </template>
-
-        <template v-else-if="documentType === 'insurance_policy'">
+        <template v-if="documentType === 'insurance_policy'">
           <v-text-field v-model="policyForm.provider" label="Insurance Provider" required />
           <v-text-field v-model="policyForm.policy_number" label="Policy Number" prepend-inner-icon="mdi-lock" />
           <v-text-field v-model="policyForm.type" label="Type (e.g. Term Life, Whole Life)" />
@@ -79,18 +58,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { useDocumentStore } from '../stores/documents'
 import { useInsurancePolicyStore } from '../stores/insurancePolicies'
 import { useObituaryInfoStore } from '../stores/obituaryInfo'
-import { useDocumentCategoryStore } from '../stores/documentCategories'
 import { usePartyStore } from '../stores/parties'
-import type { Document, InsurancePolicy } from '../types'
+import type { InsurancePolicy } from '../types'
 
 const props = defineProps<{
   modelValue: boolean
-  editData?: Document | InsurancePolicy | null
-  initialType?: 'document' | 'insurance_policy' | 'obituary_entry'
-  initialCategoryId?: number
+  editData?: InsurancePolicy | null
+  initialType?: 'insurance_policy' | 'obituary_entry'
   partyId?: number
 }>()
 
@@ -99,38 +75,24 @@ const emit = defineEmits<{
   saved: []
 }>()
 
-const documentStore = useDocumentStore()
 const policyStore = useInsurancePolicyStore()
 const obituaryStore = useObituaryInfoStore()
-const categoryStore = useDocumentCategoryStore()
 const partyStore = usePartyStore()
 
-const documentType = ref<'document' | 'insurance_policy' | 'obituary_entry'>('document')
+const documentType = ref<'insurance_policy' | 'obituary_entry'>('insurance_policy')
 
 const typeOptions = [
-  { title: 'Document', value: 'document' },
   { title: 'Insurance Policy', value: 'insurance_policy' },
   { title: 'Obituary Entry', value: 'obituary_entry' },
 ]
 
-const categoryItems = computed(() => categoryStore.categories)
-
 const dialogTitle = computed(() => {
   if (props.editData) return 'Edit'
   const labels: Record<string, string> = {
-    document: 'Add Document',
     insurance_policy: 'Add Insurance Policy',
     obituary_entry: 'Add Obituary Entry',
   }
   return labels[documentType.value] || 'Add'
-})
-
-const docForm = reactive({
-  title: '',
-  category_id: null as number | null,
-  content: '',
-  status: 'draft' as 'draft' | 'complete',
-  secure_notes: '',
 })
 
 const policyForm = reactive({
@@ -154,12 +116,6 @@ const obituaryForm = reactive({
 })
 
 function resetForms() {
-  docForm.title = ''
-  docForm.category_id = null
-  docForm.content = ''
-  docForm.status = 'draft'
-  docForm.secure_notes = ''
-
   policyForm.provider = ''
   policyForm.policy_number = ''
   policyForm.type = ''
@@ -179,35 +135,21 @@ function resetForms() {
 
 watch(() => props.modelValue, (open) => {
   if (open) {
-    documentType.value = props.initialType || 'document'
+    documentType.value = props.initialType || 'insurance_policy'
     if (props.editData) {
-      // Populate form based on type
-      if ('title' in props.editData) {
-        documentType.value = 'document'
-        const d = props.editData as Document
-        docForm.title = d.title
-        docForm.category_id = d.category_id
-        docForm.content = d.content || ''
-        docForm.status = d.status
-        docForm.secure_notes = d.secure_notes || ''
-      } else if ('provider' in props.editData) {
-        documentType.value = 'insurance_policy'
-        const p = props.editData as InsurancePolicy
-        policyForm.provider = p.provider
-        policyForm.policy_number = p.policy_number || ''
-        policyForm.type = p.type || ''
-        policyForm.coverage_amount = p.coverage_amount ?? null
-        policyForm.beneficiary = p.beneficiary || ''
-        policyForm.agent_name = p.agent_name || ''
-        policyForm.agent_phone = p.agent_phone || ''
-        policyForm.notes = p.notes || ''
-        policyForm.secure_notes = p.secure_notes || ''
-      }
+      documentType.value = 'insurance_policy'
+      const p = props.editData as InsurancePolicy
+      policyForm.provider = p.provider
+      policyForm.policy_number = p.policy_number || ''
+      policyForm.type = p.type || ''
+      policyForm.coverage_amount = p.coverage_amount ?? null
+      policyForm.beneficiary = p.beneficiary || ''
+      policyForm.agent_name = p.agent_name || ''
+      policyForm.agent_phone = p.agent_phone || ''
+      policyForm.notes = p.notes || ''
+      policyForm.secure_notes = p.secure_notes || ''
     } else {
       resetForms()
-      if (props.initialCategoryId) {
-        docForm.category_id = props.initialCategoryId
-      }
     }
   }
 })
@@ -218,16 +160,8 @@ function close() {
 }
 
 async function save() {
-  if (documentType.value === 'document') {
-    if (props.editData && 'title' in props.editData) {
-      await documentStore.updateDocument(props.editData.id, { ...docForm })
-    } else {
-      const payload: Record<string, any> = { ...docForm }
-      if (props.partyId) payload.party_id = props.partyId
-      await documentStore.createDocument(payload)
-    }
-  } else if (documentType.value === 'insurance_policy') {
-    if (props.editData && 'provider' in props.editData) {
+  if (documentType.value === 'insurance_policy') {
+    if (props.editData) {
       await policyStore.updatePolicy(props.editData.id, { ...policyForm })
     } else {
       await policyStore.createPolicy({ ...policyForm })
@@ -246,7 +180,6 @@ async function save() {
 }
 
 onMounted(() => {
-  categoryStore.fetchCategories()
   partyStore.fetchParties()
 })
 </script>

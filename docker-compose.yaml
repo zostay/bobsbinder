@@ -30,9 +30,11 @@ services:
       DB_USER: ${MYSQL_USER:-bobsbinder}
       DB_PASSWORD: ${MYSQL_PASSWORD:-bobsbinder}
       DB_NAME: ${MYSQL_DATABASE:-bobsbinder}
+      UPLOAD_DIR: /app/uploads
     volumes:
       - .:/app
       - go_mod_cache:/go/pkg/mod
+      - upload_data:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -70,3 +72,4 @@ services:
 volumes:
   mysql_data:
   go_mod_cache:
+  upload_data:
